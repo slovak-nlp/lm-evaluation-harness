@@ -468,10 +468,22 @@ def evaluate(
         if write_out:
             print_writeout(task)
         # aggregate Instances by LM method requested to get output.
-        for instance in task.instances:
-            reqtype = instance.request_type
-            requests[reqtype].append(instance)
 
+        for instance in task.instances:
+            try:
+                reqtype = instance.request_type
+                _instance = instance
+            except Exception as err:
+                if instance.isinstance(tuple):
+                    reqtype = instance[0].request_type
+                    _instance = instance[0]
+                else:
+                    print(f"Instance type not accepted: {instance}")
+                    print(f"Error: {str(err)}")
+                    continue
+            requests[reqtype].append(_instance)
+
+        print(len(requests))
         if lm.world_size > 1:
             instances_rnk = torch.tensor(len(task._instances), device=lm.device)
             gathered_item = (
